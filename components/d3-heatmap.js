@@ -5,11 +5,7 @@ const CANVAS = {
     bottom: 70,
     left: 100,
   },
-  // remove: 5 seconds shift
-  xDomainOriginShift: 0,
   xLabel: 'Years',
-  // remove: 1 place shift
-  yDomainOriginShift: 0,
   yLabel: 'Months',
   circleRadius: 00000000000000000000000000000000, // remove
   barColors: [
@@ -36,8 +32,9 @@ Vue.component('d3-heatmap', {
     return {
       axis: {
         x: {},
-        y: {}
+        y: {},
       },
+      color: {},
       ddd: {},
       id: 'd3-' + Math.round(Math.random() * 1000000)
     }
@@ -57,6 +54,9 @@ Vue.component('d3-heatmap', {
     },
   },
   computed: {
+    barHeight () {
+      return this.chartHeight / 12;
+    },
     chartHeight () {
       return this.graphHeight - CANVAS.margin.top - CANVAS.margin.bottom;
     },
@@ -73,13 +73,15 @@ Vue.component('d3-heatmap', {
       let xArray = this.d3Data.map(a => a.x);
       this.axis.x.values = d3
         .scaleLinear()
-        .domain([d3.min(xArray), d3.max(xArray) + CANVAS.xDomainOriginShift])
+        .domain(d3.extent(xArray))
         .range([0, this.chartWidth]);
       
       // this.axis.x.scale becomes a function that converts a x value to a x position
       this.axis.x.scale = d3
-        .scaleLinear()
-        .domain([d3.min(xArray), d3.max(xArray) + CANVAS.xDomainOriginShift])
+        .scaleBand()
+        .domain([...(new Set(xArray))])
+        .paddingInner(0)
+        .paddingOuter(0)
         // d3.min(xArray) is mapping to this.chartWidth
         // d3.max(xArray) + 5 (same as above) is mapping to starting of axis
         .range([0, this.chartWidth]);
@@ -90,18 +92,29 @@ Vue.component('d3-heatmap', {
       this.axis.y.values = d3
         .scaleLinear()
         // Labels on axis, should be equal to or larger than dataset
-        .domain([d3.min(yArray), d3.max(yArray) + CANVAS.yDomainOriginShift])
+        .domain(d3.extent(yArray))
         // Together with yGuide translate below, determines where to start drawing the axis
         .range([0, this.chartHeight]);
       
       // this.axis.y.scale becomes a function that converts a y value to a y position
       this.axis.y.scale = d3
         .scaleLinear()
-        .domain([d3.min(yArray), d3.max(yArray) + CANVAS.yDomainOriginShift])
+        .domain(d3.extent(yArray))
         // Smallest value is mapping to margin-top
-        // Bottom left of y axis: this.chartHeight + CANVAS.margin.top, mapping to largest value on y axis
-        .range([CANVAS.margin.top, this.chartHeight + CANVAS.margin.top]);
+        .range([CANVAS.margin.top, CANVAS.margin.top + this.chartHeight - this.barHeight]);
 
+
+      // Colors
+      let tArray = this.d3Data.map(a => a.temperature);
+      this.color.scale = d3
+        .scaleLinear()
+        // .scaleSequential()
+        // .domain([d3.min(tArray), d3.mean(tArray), d3.max(tArray)])
+        .domain(CANVAS.barColors.map(d => d[0]))
+        // .interpolator(d3.interpolateRainbow)
+        .range(CANVAS.barColors.map(d => d[1]));
+
+      
       this.drawGuide();
       this.drawData();
       this.drawLegends();
@@ -137,35 +150,22 @@ Vue.component('d3-heatmap', {
      */
     drawData () {
       // translate(x, y) specifies where bar begins, +1 to move right of y axis
-      // scatterplot uses circle instead of rect
       this.ddd.chart = this
         .createD3Element({
           data: this.d3Data.map(d => ({
-            hasDopingAllegation: d.hasDopingAllegation,
             x: d.x,
             y: d.y,
+            temperature: d.temperature,
           })),
-          type: 'circle',
+          type: 'rect',
         })
-        .attr('fill', d => d.hasDopingAllegation ? CANVAS.colorHasDopingAllegation : CANVAS.colorNoDopingAllegation)
-        .attr('r', _ => CANVAS.circleRadius)
-        .attr('cx', d => this.axis.x.scale(d.x))
-        .attr('cy', d => this.axis.y.scale(d.y));
-      
-      // Add names of cyclist
-      this
-        .createD3Element({
-          data: this.d3Data.map(d => ({
-            text: d.name,
-            x: d.x,
-            y: d.y,
-          })),
-          type: 'text',
-        })
-        .text(d => d.text)
-        .attr('x', d => this.axis.x.scale(d.x) + CANVAS.circleRadius + 5)
-        .attr('y', d => this.axis.y.scale(d.y) + CANVAS.circleRadius)
-        .style('font-size', '12px');
+        .attr('fill', d => this.color.scale(d.temperature))
+        .attr('height', _ => this.barHeight)
+        .attr('width', _ => this.axis.x.scale.bandwidth())
+        .attr('x', d => this.axis.x.scale(d.x))
+        .attr('y', d => this.axis.y.scale(d.y));
+      // console.log('remove', this.d3Data.map(d => this.axis.y.scale(d.y)))
+      // console.log('remove 2', this.axis.x.scale.bandwidth())
     },
     drawLegends () {
       
@@ -178,7 +178,7 @@ Vue.component('d3-heatmap', {
           data: [...Array(12)].map((_, i) => {
             return {
               x: -10,
-              y: (i + 1) * (this.chartHeight / 12),
+              y: (i + 1) * this.barHeight,
               text: moment((i + 1), 'M').format('MMMM'),
             }
           }),
@@ -194,11 +194,10 @@ Vue.component('d3-heatmap', {
       this
         .createD3Element()
         .append('path')
-        .attr('d', d3.line()([[0, CANVAS.margin.top], [0, this.chartHeight + CANVAS.margin.top]]))
-        .style('stroke', 'black')
+        .attr('d', d3.line()([[0, CANVAS.margin.top], [0, CANVAS.margin.top + this.chartHeight]]))
+        .style('stroke', '#ccc')
         .style('stroke-width', '2')
         .style('stroke-linecap', 'round')
-      // .style('stroke-dasharray', '3')
         
       
       let yLabel = [
