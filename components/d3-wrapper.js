@@ -1,7 +1,7 @@
 const WRAPPER = {
   width: 1100,
   height: 700,
-  headerHeight: 70,
+  headerHeight: 100,
   background: 'rgba(255, 255, 255, .95)',
 }
 
@@ -12,7 +12,14 @@ Vue.component('d3-wrapper', {
       :style="wrapperStyles"
     >
       <div :style="wrapperHeader">
-        {{ appName }}
+        {{ appName }}<br>
+        <div style="font-size:0.7em;">
+          {{ yearStart }} - {{ yearEnd }}
+        </div>
+        <div style="font-size:0.4em; line-height:1.1em;">
+          Temperatures are in Celsius and reported as anomalies relative to the Jan 1951-Dec 1980 average.<br>
+          Estimated Jan 1951-Dec 1980 absolute temperature ℃: 8.66 +/- 0.07
+        </div>
       </div>
 
       <d3-heatmap
@@ -40,6 +47,12 @@ Vue.component('d3-wrapper', {
     },
   },
   computed: {
+    yearStart () {
+      return d3.min(this.d3Data.map(d => d.x));
+    },
+    yearEnd () {
+      return d3.max(this.d3Data.map(d => d.x));
+    },
     wrapperStyles () {
       return `` +
         `height:${WRAPPER.height}px;` +
@@ -53,7 +66,7 @@ Vue.component('d3-wrapper', {
         `height:${WRAPPER.headerHeight}px;` +
         `width:100%;` +
         `text-align:center;` +
-        `font-size:2.5rem;` +
+        `font-size:2.2rem;` +
         `padding-top:25px;` +
         ``;
     },
