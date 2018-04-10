@@ -2,7 +2,7 @@ const WRAPPER = {
   width: 1100,
   height: 700,
   headerHeight: 70,
-  background: 'rgba(255, 255, 255, .7)',
+  background: 'rgba(255, 255, 255, .95)',
 }
 
 Vue.component('d3-wrapper', {
@@ -58,10 +58,4 @@ Vue.component('d3-wrapper', {
         ``;
     },
   },
-  methods: {
-    
-  },
-  mounted () {
-    
-  }
 });
