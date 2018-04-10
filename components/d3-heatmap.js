@@ -1,8 +1,8 @@
 const CANVAS = {
   margin: {
     top: 20,
-    right: 100,
-    bottom: 70,
+    right: 40,
+    bottom: 100,
     left: 100,
   },
   xLabel: 'Years',
@@ -168,7 +168,37 @@ Vue.component('d3-heatmap', {
       // console.log('remove 2', this.axis.x.scale.bandwidth())
     },
     drawLegends () {
+      let height = 20;
+      let width = 35;
+      let top = this.graphHeight - (height * 3);
+      let left = this.graphWidth - CANVAS.margin.right - CANVAS.margin.left - (width * 11);
+
+      // Colors
+      this
+        .createD3Element({
+          data: CANVAS.barColors,
+          type: 'rect',
+        })
+        .attr('fill', d => d[1])
+        .attr('height', _ => height)
+        .attr('width', _ => width)
+        .attr('x', (_, i) => i * width + left)
+        .attr('y', _ => top);
       
+        // Text
+        this
+          .createD3Element({
+            data: CANVAS.barColors,
+            type: 'text',
+          })
+          .text(d => d[0])
+          .attr('height', _ => height)
+          .attr('width', _ => width)
+          .attr('x', (_, i) => i * width + left + width / 2)
+          .attr('y', _ => top + height * 2)
+          .style('font-size', '13px')
+          .attr('text-anchor', 'middle')
+          .style('fill', '#333');
     },
     drawGuide () {
       // Y Guide
@@ -201,7 +231,7 @@ Vue.component('d3-heatmap', {
         
       
       let yLabel = [
-        { x: -290, y: -75, text: CANVAS.yLabel, },
+        { x: -(this.chartHeight / 2), y: -75, text: CANVAS.yLabel, },
       ];
       this
         .createD3Element({
@@ -232,7 +262,7 @@ Vue.component('d3-heatmap', {
         );
       
       let xLabel = [
-        { x: Math.floor(this.chartWidth / 2), y: this.graphHeight - (CANVAS.margin.bottom - 40), text: CANVAS.xLabel, },
+        { x: Math.floor(this.chartWidth / 2), y: this.graphHeight - (CANVAS.margin.bottom - 45), text: CANVAS.xLabel, },
       ];
       this
         .createD3Element({
@@ -252,7 +282,7 @@ Vue.component('d3-heatmap', {
       this.ddd.chart
         .on('mouseover', function(data, index, circles) {
           // Approximate width of tooltip window
-          let widthOfTooltip = 280;
+          let widthOfTooltip = 180;
           let tooltipX = +d3.event.pageX + ((d3.event.pageX + widthOfTooltip) > window.innerWidth ? (-widthOfTooltip) : 15);
           let tooltipY = +d3.event.pageY - 100;
           component.ddd.tooltip.html(component.d3Data[index].tooltip)
