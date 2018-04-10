@@ -2,16 +2,29 @@ const CANVAS = {
   margin: {
     top: 20,
     right: 100,
-    bottom: 50,
-    left: 50,
+    bottom: 70,
+    left: 100,
   },
-  // 5 seconds shift
-  xDomainOriginShift: 5,
-  // 1 place shift
-  yDomainOriginShift: 1,
-  circleRadius: 5,
-  colorHasDopingAllegation: '#E53935',
-  colorNoDopingAllegation: '#90CAF9',
+  // remove: 5 seconds shift
+  xDomainOriginShift: 0,
+  xLabel: 'Years',
+  // remove: 1 place shift
+  yDomainOriginShift: 0,
+  yLabel: 'Months',
+  circleRadius: 00000000000000000000000000000000, // remove
+  barColors: [
+    [0, '#5e4fa2'],
+    [2.7, '#3288bd'],
+    [3.9, '#66c2a5'],
+    [5, '#abdda4'],
+    [6.1, '#e6f598'],
+    [7.2, '#ffffbf'],
+    [8.3, '#fee08b'],
+    [9.4, '#fdae61'],
+    [10.5, '#f46d43'],
+    [11.6, '#d53e4f'],
+    [12.7, '#9e0142'],
+  ],
 };
 
 Vue.component('d3-heatmap', {
@@ -61,7 +74,7 @@ Vue.component('d3-heatmap', {
       this.axis.x.values = d3
         .scaleLinear()
         .domain([d3.min(xArray), d3.max(xArray) + CANVAS.xDomainOriginShift])
-        .range([this.chartWidth, 0]);
+        .range([0, this.chartWidth]);
       
       // this.axis.x.scale becomes a function that converts a x value to a x position
       this.axis.x.scale = d3
@@ -69,7 +82,7 @@ Vue.component('d3-heatmap', {
         .domain([d3.min(xArray), d3.max(xArray) + CANVAS.xDomainOriginShift])
         // d3.min(xArray) is mapping to this.chartWidth
         // d3.max(xArray) + 5 (same as above) is mapping to starting of axis
-        .range([this.chartWidth, 0]);
+        .range([0, this.chartWidth]);
       
 
       // Y values and scaling function
@@ -155,50 +168,41 @@ Vue.component('d3-heatmap', {
         .style('font-size', '12px');
     },
     drawLegends () {
-      let left = this.chartWidth - 180;
-      let top = Math.floor(this.chartHeight / 2);
-      let legends = [
-        { x: left, y: top, color: CANVAS.colorHasDopingAllegation, text: 'Riders with doping allegations', },
-        { x: left, y: top + 30, color: CANVAS.colorNoDopingAllegation, text: 'No doping allegation', },
-      ];
-
-      // Colored dots in legend
-      this
-        .createD3Element({
-          data: legends,
-          type: 'circle',
-        })
-        .attr('fill', d => d.color)
-        .attr('r', _ => CANVAS.circleRadius)
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y);
       
-      // Text in legend
-      this
-        .createD3Element({
-          data: legends,
-          type: 'text',
-        })
-        .text(d => d.text)
-        .attr('x', d => d.x + CANVAS.circleRadius + 5)
-        .attr('y', d => d.y + CANVAS.circleRadius)
-        .style('font-size', '15px');
     },
     drawGuide () {
       // Y Guide
-      // translate(x, y) specifies where y axis begins, drawn from top to bottom
+      // Month text on axis, cannot use standard axis as text needs to be in between ticks
       this
         .createD3Element({
-          transformX: CANVAS.margin.left,
-          transformY: CANVAS.margin.top,
+          data: [...Array(12)].map((_, i) => {
+            return {
+              x: -10,
+              y: (i + 1) * (this.chartHeight / 12),
+              text: moment((i + 1), 'M').format('MMMM'),
+            }
+          }),
+          type: 'text',
         })
-        .call(d3
-          .axisLeft(this.axis.y.values)
-          .ticks(5)
-        );
+        .text(d => d.text)
+        .attr('x', d => d.x)
+        .attr('y', d => d.y)
+        .attr('text-anchor', 'end')
+        .style('font-size', '0.7rem');
+
+      // Vertical line
+      this
+        .createD3Element()
+        .append('path')
+        .attr('d', d3.line()([[0, CANVAS.margin.top], [0, this.chartHeight + CANVAS.margin.top]]))
+        .style('stroke', 'black')
+        .style('stroke-width', '2')
+        .style('stroke-linecap', 'round')
+      // .style('stroke-dasharray', '3')
+        
       
       let yLabel = [
-        { x: -90, y: -25, text: 'Ranking', },
+        { x: -290, y: -75, text: CANVAS.yLabel, },
       ];
       this
         .createD3Element({
@@ -224,12 +228,12 @@ Vue.component('d3-heatmap', {
         })
         .call(d3
           .axisBottom(this.axis.x.values)
-          .ticks(10)
-          .tickFormat(d => d3.timeFormat('%M:%S')(d * 1000))
+          .ticks(26)
+          .tickFormat(d => d.toString())
         );
       
       let xLabel = [
-        { x: Math.floor(this.chartWidth / 2), y: this.graphHeight - (CANVAS.margin.bottom - 40), text: 'Minutes Behind Fastest Time', },
+        { x: Math.floor(this.chartWidth / 2), y: this.graphHeight - (CANVAS.margin.bottom - 40), text: CANVAS.xLabel, },
       ];
       this
         .createD3Element({
